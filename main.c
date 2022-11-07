@@ -105,6 +105,8 @@ void insert(struct lru cache[], int cache_size, int num_fibbed) {
 	}
 }; 
 
+//change so i can commit
+
 // remove from cache once full, cache[LAST-1] = cache[LAST], ..., cache[LAST] = NULL
 void evict(struct lru cache[], int cache_size) {
   
