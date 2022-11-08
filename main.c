@@ -13,6 +13,7 @@ struct lru{
   long fib_result; 
 };
 
+struct lru fill(struct lru cache[], int index);
 long rfibonacci(int n);
 long fib_lru(struct lru cache[], int cache_size, int num_to_fib);
 void insert(struct lru cache[], int cache_size, int num_fibbed);	
@@ -33,21 +34,18 @@ int main(int argc, char* argv[]) {
 
 // testing pre-filled cache
 
-	for(int i = 0; i < CACHE_SIZE; i++){
-		cache[i].num_fibbed = -1;
-		cache[i].when_called = -1;
-		cache[i].fib_result = -1;
-	}
-
-// end testing -> seems to mess up LRU
+	for(int i = 0; i < CACHE_SIZE; i++)
+		fill(cache, i);
+// works as expected
+// end testing -> fixed overflow, LRU not working 
 
 
   printf("\ntimes called value: %d\n", times_called);
   
   for(int i = 0; i < num_tests; i++) {
     int fib_to_get = rand() % max_fib_val; // chooses a number to fib within the range provided (inclusive) 
-		insert(cache, CACHE_SIZE, fib_to_get);
-    printf("fib of %d = %ld\n", fib_to_get, fib_lru(cache, CACHE_SIZE, fib_to_get)); //debugging
+		insert(cache, CACHE_SIZE, fib_to_get); // *******something going wrong here with evict
+    printf("\nfib of %d = %ld\n", fib_to_get, fib_lru(cache, CACHE_SIZE, fib_to_get)); // ******* something causing recursion
   }
 
   printf("\ntimes called value: %d\n", times_called);
@@ -73,12 +71,16 @@ long rfibonacci(int n) {
 // check cache and increment the heathen if num_to_fib is found in cache
 long fib_lru(struct lru cache[], int cache_size, int num_to_fib) {
   
+printf(">> fib_lru function successfully called\n");  
+  
   for(int i = 0; i < cache_size; i++) {
+  
+  insert(cache, cache_size, num_to_fib);
   	
     if(num_to_fib == cache[i].num_fibbed) {
-    	printf("times called before increment: %d\n", times_called);
+    	printf("<- times called before increment: %d\n", times_called);
       times_called++;
-      printf("times called after increment: %d\n", times_called);
+      printf("-> times called after increment: %d\n", times_called);
       
       return cache[i].fib_result;
     }
@@ -90,8 +92,11 @@ long fib_lru(struct lru cache[], int cache_size, int num_to_fib) {
 // insert into cache after removing
 void insert(struct lru cache[], int cache_size, int num_fibbed) {
 
+printf("> insert function successfully called\n");
+
 	// go through the cache until the first empty spot then exit function
 	for(int i = 0; i < cache_size; i++) {
+	
 		// if index is "empty", simply insert new values then exit function
 		if(cache[cache_size-1].num_fibbed == -1) { 
 			cache[cache_size-1].num_fibbed = num_fibbed;
@@ -99,26 +104,45 @@ void insert(struct lru cache[], int cache_size, int num_fibbed) {
 			cache[cache_size-1].when_called = cache_size - 1;
 			return;
 		}
+		
 		// "remove" last entry in cache, i.e. values of cache[cache_size-1] = -1
-		else
+		else if (cache[cache_size-1].num_fibbed != -1){
 			evict(&cache[cache_size-1], cache_size-1);
+			return;
+		}
 	}
 }; 
 
-//change so i can commit
-
 // remove from cache once full, cache[LAST-1] = cache[LAST], ..., cache[LAST] = NULL
 void evict(struct lru cache[], int cache_size) {
+
+printf("X evict function successfully called\n");
   
   // move values over 1 index to the left
   for(int i = 0; i < cache_size-1; i++) {
-    printf("old cache[%d] num_to_fib: %d", i, cache[i].num_fibbed);
+    //printf("old cache[%d] num_to_fib: %d\n", i, cache[i].num_fibbed);
     cache[i] = cache[i+1];
-    printf("new cache[%d] num_to_fib: %d", i, cache[i].num_fibbed);
-    }
+    //printf("new cache[%d] num_to_fib: %d\n", i, cache[i].num_fibbed);
+  }
 
   // essentially deletes last value in cache
-  cache[cache_size-1].num_fibbed = -1;
-  cache[cache_size-1].fib_result = 0;
-  cache[cache_size-1].when_called = -1;
+  fill(cache, cache_size-1);	
 }; 
+
+
+struct lru fill(struct lru cache[], int index){
+  cache[index].num_fibbed = -1;
+  cache[index].fib_result = -1;
+  cache[index].when_called = -1;
+  
+  return cache[index];
+};
+
+
+
+
+
+
+
+
+
